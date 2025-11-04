@@ -1,0 +1,45 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: slotswapper_db
+    restart: always
+    environment:
+      POSTGRES_USER: slotswapper
+      POSTGRES_PASSWORD: user123
+      POSTGRES_DB: slotswapperdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  backend:
+    build: ./slotswapper-backend
+    container_name: slotswapper_backend
+    restart: always
+    env_file:
+      - ./slotswapper-backend/.env
+    environment:
+      DATABASE_URL: postgres://slotswapper:user123@postgres:5432/slotswapperdb
+    depends_on:
+      - postgres
+    ports:
+      - "8080:8080"
+    command: >
+      sh -c "npx prisma migrate deploy &&
+             npm run start"
+
+  frontend:
+    build: ./slotswapper-frontend
+    container_name: slotswapper_frontend
+    restart: always
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+
+volumes:
+  pgdata:
